@@ -23,6 +23,7 @@ from time import time
 import sys
 import GMF, MLP
 import argparse
+import requests
 
 #################### Arguments ####################
 def parse_args():
@@ -60,6 +61,7 @@ def parse_args():
     return parser.parse_args()
 
 def init_normal(shape, name=None):
+    shape = (int(shape[0]), int(shape[1]))
     return initializations.normal(shape, scale=0.01, name=name)
 
 def get_model(num_users, num_items, mf_dim=10, layers=[10], reg_layers=[0], reg_mf=0):
@@ -89,7 +91,7 @@ def get_model(num_users, num_items, mf_dim=10, layers=[10], reg_layers=[0], reg_
     mlp_user_latent = Flatten()(MLP_Embedding_User(user_input))
     mlp_item_latent = Flatten()(MLP_Embedding_Item(item_input))
     mlp_vector = merge([mlp_user_latent, mlp_item_latent], mode = 'concat')
-    for idx in xrange(1, num_layer):
+    for idx in range(1, num_layer):
         layer = Dense(layers[idx], W_regularizer= l2(reg_layers[idx]), activation='relu', name="layer%d" %idx)
         mlp_vector = layer(mlp_vector)
 

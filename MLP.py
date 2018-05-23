@@ -25,7 +25,7 @@ from time import time
 import sys
 import argparse
 import multiprocessing as mp
-
+import requests
 #################### Arguments ####################
 def parse_args():
     parser = argparse.ArgumentParser(description="Run MLP.")
