@@ -99,13 +99,14 @@ def get_model(num_users, num_items, mf_dim=10, layers=[10], reg_layers=[0], reg_
         mlp_vector = layer(mlp_vector)
 
     # Concatenate MF and MLP parts
-    #mf_vector = Lambda(lambda x: x * alpha)(mf_vector)
-    #mlp_vector = Lambda(lambda x : x * (1-alpha))(mlp_vector)
+    # mf_vector = Lambda(lambda x: x * alpha)(mf_vector)
+    # mlp_vector = Lambda(lambda x : x * (1-alpha))(mlp_vector)
     predict_vector = merge([mf_vector, mlp_vector], mode = 'concat')
     
     # Final prediction layer
-    prediction = Dense(6, activation='softmax', init='lecun_uniform', name = "prediction")(predict_vector)
-    
+    # prediction = Dense(6, activation='softmax', init='lecun_uniform', name = "prediction")(predict_vector)    
+    prediction = Dense(1,init='lecun_uniform', name = "prediction")(predict_vector)
+
     model = Model(input=[user_input, item_input], 
                   output=prediction)
     
@@ -160,7 +161,7 @@ def get_train_instances(train, num_negatives):
     user_inputs = [x[0] for x in ratings]
     item_inputs = [x[1] for x in ratings]
     labels = [x[2] for x in ratings]
-    labels = keras.utils.np_utils.to_categorical(labels, nb_classes=6)
+    # labels = keras.utils.np_utils.to_categorical(labels, nb_classes=6)
     return user_input, item_input, labels
 
 if __name__ == '__main__':
@@ -256,7 +257,8 @@ if __name__ == '__main__':
     y_predicted = model.predict([np.asarray(user_input), np.asarray(item_input)])    
     print(y_predicted)
     for uid, iid, prediction in zip(user_input, item_input, y_predicted):
-        predictions[uid, iid] = prediction.argmax(axis=-1)
+        # predictions[uid, iid] = prediction.argmax(axis=-1)
+        predictions[uid, iid] = prediction
     utils.reconstruction_to_predictions(predictions, SUBMISSION_FILE)
 
     # print("End. Best Iteration %d:  HR = %.4f, NDCG = %.4f. " %(best_iter, best_hr, best_ndcg))
