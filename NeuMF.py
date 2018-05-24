@@ -26,6 +26,8 @@ import argparse
 import requests
 import utils
 
+SUBMISSION_FILE = 'Data/submission_nn.csv'
+
 #################### Arguments ####################
 def parse_args():
     parser = argparse.ArgumentParser(description="Run NeuMF.")
@@ -102,7 +104,7 @@ def get_model(num_users, num_items, mf_dim=10, layers=[10], reg_layers=[0], reg_
     predict_vector = merge([mf_vector, mlp_vector], mode = 'concat')
     
     # Final prediction layer
-    prediction = Dense(1, activation='sigmoid', init='lecun_uniform', name = "prediction")(predict_vector)
+    prediction = Dense(6, activation='softmax', init='lecun_uniform', name = "prediction")(predict_vector)
     
     model = Model(input=[user_input, item_input], 
                   output=prediction)
@@ -138,11 +140,14 @@ def load_pretrain_model(model, gmf_model, mlp_model, num_layers):
 def get_train_instances(train, num_negatives):
     user_input, item_input, labels = [],[],[]
     num_users = train.shape[0]
+    print(train.keys()[:10])
+    print(train.values()[:10])
     for (u, i) in train.keys():
         # positive instance
         user_input.append(u)
         item_input.append(i)
-        labels.append(1)
+        rating = train[u, i]
+        labels.append(rating)
         # negative instances
         for t in xrange(num_negatives):
             j = np.random.randint(num_items)
@@ -151,6 +156,11 @@ def get_train_instances(train, num_negatives):
             user_input.append(u)
             item_input.append(j)
             labels.append(0)
+    ratings = utils.load_ratings()
+    user_inputs = [x[0] for x in ratings]
+    item_inputs = [x[1] for x in ratings]
+    labels = [x[2] for x in ratings]
+    labels = keras.utils.np_utils.to_categorical(labels, nb_classes=6)
     return user_input, item_input, labels
 
 if __name__ == '__main__':
@@ -177,6 +187,7 @@ if __name__ == '__main__':
     t1 = time()
     dataset = Dataset(args.path + args.dataset)
     train, testRatings, testNegatives = dataset.trainMatrix, dataset.testRatings, dataset.testNegatives
+    # testRatings.values() = keras.utils.np_utils.to_categorical(testRatings.values(), nb_classes=6)
     num_users, num_items = train.shape
     print("Load data done [%.1f s]. #user=%d, #item=%d, #train=%d, #test=%d" 
           %(time()-t1, num_users, num_items, train.nnz, len(testRatings)))
@@ -203,10 +214,10 @@ if __name__ == '__main__':
         print("Load pretrained GMF (%s) and MLP (%s) models done. " %(mf_pretrain, mlp_pretrain))
         
     # Init performance
-    (hits, ndcgs) = evaluate_model(model, testRatings, testNegatives, topK, evaluation_threads)
-    hr, ndcg = np.array(hits).mean(), np.array(ndcgs).mean()
-    print('Init: HR = %.4f, NDCG = %.4f' % (hr, ndcg))
-    best_hr, best_ndcg, best_iter = hr, ndcg, -1
+    # (hits, ndcgs) = evaluate_model(model, testRatings, testNegatives, topK, evaluation_threads)
+    # hr, ndcg = np.array(hits).mean(), np.array(ndcgs).mean()
+    # print('Init: HR = %.4f, NDCG = %.4f' % (hr, ndcg))
+    # best_hr, best_ndcg, best_iter = hr, ndcg, -1
     if args.out > 0:
         model.save_weights(model_out_file, overwrite=True) 
         
@@ -215,7 +226,9 @@ if __name__ == '__main__':
         t1 = time()
         # Generate training instances
         user_input, item_input, labels = get_train_instances(train, num_negatives)
-        
+        print(user_input[:10])
+        print(item_input[:10])
+        print(labels[:10])
         # Training
         hist = model.fit([np.array(user_input), np.array(item_input)], #input
                          np.array(labels), # labels 
@@ -225,7 +238,7 @@ if __name__ == '__main__':
         print("Validation loss: {0}".format(hist.history["val_loss"]))
         print("RMSE: {0}".format(np.sqrt(hist.history["val_loss"])))
         # Evaluation
-        if epoch %verbose == 0:
+        if epoch %verbose == 1:
             (hits, ndcgs) = evaluate_model(model, testRatings, testNegatives, topK, evaluation_threads)
             hr, ndcg, loss = np.array(hits).mean(), np.array(ndcgs).mean(), hist.history['loss'][0]
             print('Iteration %d [%.1f s]: HR = %.4f, NDCG = %.4f, loss = %.4f [%.1f s]' 
@@ -235,8 +248,17 @@ if __name__ == '__main__':
                 if args.out > 0:
                     model.save_weights(model_out_file, overwrite=True)
 
-        print(model.predict([np.asarray(user_input), np.asarray(item_input)]))    
+    
+    predictions = np.zeros((num_users, num_items))
+    indices_to_predict = utils.get_indices_to_predict()
+    user_input = [x[0] for x in indices_to_predict]
+    item_input = [x[1] for x in indices_to_predict]
+    y_predicted = model.predict([np.asarray(user_input), np.asarray(item_input)])    
+    print(y_predicted)
+    for uid, iid, prediction in zip(user_input, item_input, y_predicted):
+        predictions[uid, iid] = prediction.argmax(axis=-1)
+    utils.reconstruction_to_predictions(predictions, SUBMISSION_FILE)
 
-    print("End. Best Iteration %d:  HR = %.4f, NDCG = %.4f. " %(best_iter, best_hr, best_ndcg))
-    if args.out > 0:
-        print("The best NeuMF model is saved to %s" %(model_out_file))
+    # print("End. Best Iteration %d:  HR = %.4f, NDCG = %.4f. " %(best_iter, best_hr, best_ndcg))
+    # if args.out > 0:
+        # print("The best NeuMF model is saved to %s" %(model_out_file))
