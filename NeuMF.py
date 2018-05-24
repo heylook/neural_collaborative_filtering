@@ -24,6 +24,7 @@ import sys
 import GMF, MLP
 import argparse
 import requests
+import utils
 
 #################### Arguments ####################
 def parse_args():
@@ -182,14 +183,15 @@ if __name__ == '__main__':
     
     # Build model
     model = get_model(num_users, num_items, mf_dim, layers, reg_layers, reg_mf)
+    # TODO(lorenz): The original loss was binary crossentropy. Run with that loss and compare.
     if learner.lower() == "adagrad": 
-        model.compile(optimizer=Adagrad(lr=learning_rate), loss='binary_crossentropy')
+        model.compile(optimizer=Adagrad(lr=learning_rate), loss='mean_squared_error')
     elif learner.lower() == "rmsprop":
-        model.compile(optimizer=RMSprop(lr=learning_rate), loss='binary_crossentropy')
+        model.compile(optimizer=RMSprop(lr=learning_rate), loss='mean_squared_error')
     elif learner.lower() == "adam":
-        model.compile(optimizer=Adam(lr=learning_rate), loss='binary_crossentropy')
+        model.compile(optimizer=Adam(lr=learning_rate), loss='mean_squared_error')
     else:
-        model.compile(optimizer=SGD(lr=learning_rate), loss='binary_crossentropy')
+        model.compile(optimizer=SGD(lr=learning_rate), loss='mean_squared_error')
     
     # Load pretrain model
     if mf_pretrain != '' and mlp_pretrain != '':
@@ -217,9 +219,11 @@ if __name__ == '__main__':
         # Training
         hist = model.fit([np.array(user_input), np.array(item_input)], #input
                          np.array(labels), # labels 
-                         batch_size=batch_size, nb_epoch=1, verbose=0, shuffle=True)
+                         batch_size=batch_size, nb_epoch=1, verbose=0, shuffle=True, validation_split=0.1)
         t2 = time()
         
+        print("Validation loss: {0}".format(hist.history["val_loss"]))
+        print("RMSE: {0}".format(np.sqrt(hist.history["val_loss"])))
         # Evaluation
         if epoch %verbose == 0:
             (hits, ndcgs) = evaluate_model(model, testRatings, testNegatives, topK, evaluation_threads)
@@ -230,6 +234,8 @@ if __name__ == '__main__':
                 best_hr, best_ndcg, best_iter = hr, ndcg, epoch
                 if args.out > 0:
                     model.save_weights(model_out_file, overwrite=True)
+
+        print(model.predict([np.asarray(user_input), np.asarray(item_input)]))    
 
     print("End. Best Iteration %d:  HR = %.4f, NDCG = %.4f. " %(best_iter, best_hr, best_ndcg))
     if args.out > 0:
