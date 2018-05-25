@@ -25,6 +25,7 @@ import GMF, MLP
 import argparse
 import requests
 import utils
+import copy
 
 SUBMISSION_FILE = 'Data/submission_nn.csv'
 
@@ -80,11 +81,19 @@ def get_model(num_users, num_items, mf_dim=10, layers=[10], reg_layers=[0], reg_
     MF_Embedding_Item = Embedding(input_dim = num_items, output_dim = mf_dim, name = 'mf_embedding_item',
                                   init = init_normal, W_regularizer = l2(reg_mf), input_length=1)   
 
-    MLP_Embedding_User = Embedding(input_dim = num_users, output_dim = layers[0]/2, name = "mlp_embedding_user",
-                                  init = init_normal, W_regularizer = l2(reg_layers[0]), input_length=1)
-    MLP_Embedding_Item = Embedding(input_dim = num_items, output_dim = layers[0]/2, name = 'mlp_embedding_item',
-                                  init = init_normal, W_regularizer = l2(reg_layers[0]), input_length=1)   
+    # MLP_Embedding_User = Embedding(input_dim = num_users, output_dim = layers[0]/2, name = "mlp_embedding_user",
+                                  # init = init_normal, W_regularizer = l2(reg_layers[0]), input_length=1)
+    # MLP_Embedding_Item = Embedding(input_dim = num_items, output_dim = layers[0]/2, name = 'mlp_embedding_item',
+                                  # init = init_normal, W_regularizer = l2(reg_layers[0]), input_length=1)   
     
+    ratings = utils.load_ratings()
+    data_matrix = utils.ratings_to_matrix(ratings)
+    imputed_data = utils.predict_by_avg(copy.copy(data_matrix), True)
+
+    MLP_Embedding_User = Embedding(input_dim = num_users, output_dim=num_items, weights = [imputed_data], name = "mlp_embedding_user",
+                                   trainable=False, input_length=1)
+    MLP_Embedding_Item = Embedding(input_dim = num_items, output_dim=num_users, weights = [imputed_data.T],name = 'mlp_embedding_item',
+                                   trainable=False, input_length=1)
     # MF part
     mf_user_latent = Flatten()(MF_Embedding_User(user_input))
     mf_item_latent = Flatten()(MF_Embedding_Item(item_input))
