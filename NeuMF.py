@@ -233,7 +233,7 @@ if __name__ == '__main__':
         # Training
         hist = model.fit([np.array(user_input), np.array(item_input)], #input
                          np.array(labels), # labels 
-                         batch_size=batch_size, nb_epoch=1, verbose=0, shuffle=True, validation_split=0.1)
+                         batch_size=batch_size, nb_epoch=1, verbose=0, shuffle=True, validation_split=0.25)
         t2 = time()
         
         print("Validation loss: {0}".format(hist.history["val_loss"]))
@@ -256,6 +256,7 @@ if __name__ == '__main__':
     item_input = [x[1] for x in indices_to_predict]
     y_predicted = model.predict([np.asarray(user_input), np.asarray(item_input)])    
     print(y_predicted)
+    # y_predicted = utils.clip(y_predicted)
     for uid, iid, prediction in zip(user_input, item_input, y_predicted):
         # predictions[uid, iid] = prediction.argmax(axis=-1)
         predictions[uid, iid] = prediction
