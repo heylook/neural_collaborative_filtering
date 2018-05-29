@@ -2,15 +2,15 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), './')
-DATA_FILE = os.path.join(ROOT_DIR, 'Data/data_train.csv')
+ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../')
+DATA_FILE = os.path.join(ROOT_DIR, 'data/data_train.csv')
 TRAINING_FILE_NAME = os.path.join(ROOT_DIR,\
         'data/trainingIndices.csv')
 VALIDATION_FILE_NAME = os.path.join(ROOT_DIR,\
         'data/validationIndices.csv')
 
 SAMPLE_SUBMISSION = os.path.join(ROOT_DIR,\
-        'Data/sampleSubmission.csv')
+        'data/sampleSubmission.csv')
 ITEM_COUNT = 1000
 USER_COUNT = 10000
 
