@@ -1,0 +1,4 @@
+*.pyc
+lsf.*
+ncf/*
+Pretrain/*
