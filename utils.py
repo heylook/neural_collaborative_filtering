@@ -50,6 +50,10 @@ def ratings_to_matrix(ratings):
     print("Finished building rating matrix.")
     return matrix
 
+def get_validation_indices():
+    validation_indices = get_indeces_from_file(VALIDATION_FILE_NAME)
+    return validation_indices
+
 def get_observed_indeces(data):
     row_indices, col_indices = np.where(data != 0)
     return list(zip(row_indices, col_indices))

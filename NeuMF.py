@@ -222,6 +222,9 @@ if __name__ == '__main__':
     if args.out > 0:
         model.save_weights(model_out_file, overwrite=True) 
         
+    validation_indices = utils.get_validation_indices()
+    x_validate = [x[0] for x in validation_indices]
+    y_validate = [x[1] for x in validation_indices]
     # Training model
     for epoch in xrange(num_epochs):
         t1 = time()
@@ -233,7 +236,7 @@ if __name__ == '__main__':
         # Training
         hist = model.fit([np.array(user_input), np.array(item_input)], #input
                          np.array(labels), # labels 
-                         batch_size=batch_size, nb_epoch=1, verbose=0, shuffle=True, validation_split=0.25)
+                         batch_size=batch_size, nb_epoch=1, verbose=0, shuffle=True, validation_data=(x_validate, yvalidate))
         t2 = time()
         
         print("Validation loss: {0}".format(hist.history["val_loss"]))
